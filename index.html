@@ -13,7 +13,14 @@ body{margin:0;background:var(--bg);font:15px/1.5 -apple-system,BlinkMacSystemFon
 .band span{display:inline-block;padding-left:100%;animation:flow 16s linear infinite}
 @keyframes flow{to{transform:translateX(-100%)}}
 @media (prefers-reduced-motion:reduce){.band span{animation:none;padding-left:16px}}
-.head{display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px 16px 14px}
+.head{display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px 16px 14px;position:relative}
+.share{position:absolute;left:14px;top:14px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(0,0,0,.12);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.contact{display:inline-flex;align-items:center;gap:6px;border:0;background:#fff;color:var(--ink);border-radius:10px;padding:7px 12px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.cbox{margin:4px 16px 12px;background:#fff;border-radius:12px;padding:12px 14px;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.cbox b{font-size:14px;user-select:all}
+.cbox button,.cbox a{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:5px 10px;font-size:12px;text-decoration:none;cursor:pointer}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;font-size:13px;padding:8px 14px;border-radius:20px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
 .logo{width:84px;height:84px;border-radius:50%;object-fit:cover;background:#fff;border:3px solid #fff}
 .logo.txt{display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;color:var(--bg)}
 .name{font-weight:800;font-size:18px;margin:0}
@@ -35,9 +42,15 @@ a.item:focus-visible{outline:3px solid var(--bg);outline-offset:2px}
 <div class="wrap">
   <div class="band" id="band"><span id="notice">아래 링크로 구매시 쿠팡 파트너스 수수료를 받습니다.</span></div>
   <div class="head">
+    <button class="share" id="share" aria-label="이 페이지 공유"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6"/></svg></button>
     <div id="logoBox"></div>
     <p class="name" id="name"></p>
     <p class="desc" id="desc"></p>
+    <button class="contact" id="contact" hidden><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>문의하기</button>
+  </div>
+  <div class="cbox" id="cbox" hidden>
+    <span>문의 메일</span><b id="mail"></b>
+    <button id="copyMail">주소 복사</button><a id="sendMail" href="#">메일 보내기</a>
   </div>
   <div class="search">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
@@ -45,7 +58,19 @@ a.item:focus-visible{outline:3px solid var(--bg);outline-offset:2px}
   </div>
   <div class="list" id="list"></div>
 </div>
+<div class="toast" id="toast"></div>
 <script>
+function toast(m) { const t = document.getElementById("toast"); t.textContent = m; t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 1600); }
+function copy(s, m) {
+  const done = () => toast(m);
+  if (navigator.clipboard) navigator.clipboard.writeText(s).then(done, () => { prompt("복사해 주세요", s); });
+  else prompt("복사해 주세요", s);
+}
+document.getElementById("share").addEventListener("click", () => {
+  const u = location.origin + location.pathname;
+  if (navigator.share) navigator.share({ title: document.title, url: u }).catch(() => {});
+  else copy(u, "페이지 주소를 복사했어요");
+});
 // 이 페이지는 같은 폴더의 links.json 을 읽어 그린다(새 영상 = links.json 맨 앞에 한 줄 추가).
 fetch("links.json?v=" + Date.now()).then(r => r.json()).then(d => {
   document.title = d.name + " | 상품 링크";
@@ -55,6 +80,14 @@ fetch("links.json?v=" + Date.now()).then(r => r.json()).then(d => {
   const lb = document.getElementById("logoBox");
   if (d.logo) { const i = new Image(); i.src = d.logo; i.alt = d.name; i.className = "logo"; lb.appendChild(i); }
   else { const t = document.createElement("div"); t.className = "logo txt"; t.textContent = d.name.slice(0, 2); lb.appendChild(t); }
+  if (d.contact) {
+    const c = document.getElementById("contact"), box = document.getElementById("cbox");
+    document.getElementById("mail").textContent = d.contact;
+    document.getElementById("sendMail").href = "mailto:" + d.contact + "?subject=" + encodeURIComponent("[" + d.name + "] 문의");
+    c.hidden = false;
+    c.addEventListener("click", () => { box.hidden = !box.hidden; });
+    document.getElementById("copyMail").addEventListener("click", () => copy(d.contact, "메일 주소를 복사했어요"));
+  }
   const items = (d.items || []).slice().sort((a, b) => b.no - a.no);
   const list = document.getElementById("list");
   function draw(q) {
