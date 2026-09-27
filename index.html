@@ -51,7 +51,6 @@ a.item:focus-visible{outline:3px solid var(--bg);outline-offset:2px}
   </div>
   <div class="cbox" id="cbox" hidden>
     <span>문의 메일</span><b id="mail"></b>
-    <button id="copyMail">주소 복사</button><a id="sendMail" href="#">메일 보내기</a>
   </div>
   <div class="search">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
@@ -90,10 +89,8 @@ fetch("links.json?v=" + Date.now()).then(r => r.json()).then(d => {
   if (d.contact) {
     const c = document.getElementById("contact"), box = document.getElementById("cbox");
     document.getElementById("mail").textContent = d.contact;
-    document.getElementById("sendMail").href = "mailto:" + d.contact + "?subject=" + encodeURIComponent("[" + d.name + "] 문의");
     c.hidden = false;
     c.addEventListener("click", () => { box.hidden = !box.hidden; c.setAttribute("aria-expanded", String(!box.hidden)); });
-    document.getElementById("copyMail").addEventListener("click", () => copy(d.contact, "메일 주소를 복사했어요"));
   }
   const items = (d.items || []).slice().sort((a, b) => b.no - a.no);
   const list = document.getElementById("list");
