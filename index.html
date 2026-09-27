@@ -7,6 +7,7 @@
 <style>
 :root{--bg:#0a6cff;--card:#eaf3ff;--item:#ffffff;--ink:#0f1b33;--muted:#56637d;--line:#c9dcfa;--band:#ffe14d}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{margin:0;background:var(--bg);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:var(--ink)}
 .wrap{max-width:480px;margin:0 auto;min-height:100vh;background:var(--card);padding-bottom:40px}
 .band{background:var(--band);overflow:hidden;white-space:nowrap;font-size:13px;font-weight:700;padding:9px 0;position:sticky;top:0;z-index:2}
@@ -62,9 +63,15 @@ a.item:focus-visible{outline:3px solid var(--bg);outline-offset:2px}
 <script>
 function toast(m) { const t = document.getElementById("toast"); t.textContent = m; t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 1600); }
 function copy(s, m) {
-  const done = () => toast(m);
-  if (navigator.clipboard) navigator.clipboard.writeText(s).then(done, () => { prompt("복사해 주세요", s); });
-  else prompt("복사해 주세요", s);
+  const ta = document.createElement("textarea");
+  ta.value = s; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, s.length);
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch (e) {}
+  document.body.removeChild(ta);
+  if (ok) { toast(m); return; }
+  if (navigator.clipboard) navigator.clipboard.writeText(s).then(() => toast(m), () => toast("길게 눌러 주소를 복사해 주세요"));
+  else toast("길게 눌러 주소를 복사해 주세요");
 }
 document.getElementById("share").addEventListener("click", () => {
   const u = location.origin + location.pathname;
@@ -85,7 +92,7 @@ fetch("links.json?v=" + Date.now()).then(r => r.json()).then(d => {
     document.getElementById("mail").textContent = d.contact;
     document.getElementById("sendMail").href = "mailto:" + d.contact + "?subject=" + encodeURIComponent("[" + d.name + "] 문의");
     c.hidden = false;
-    c.addEventListener("click", () => { box.hidden = !box.hidden; });
+    c.addEventListener("click", () => { box.hidden = !box.hidden; c.setAttribute("aria-expanded", String(!box.hidden)); });
     document.getElementById("copyMail").addEventListener("click", () => copy(d.contact, "메일 주소를 복사했어요"));
   }
   const items = (d.items || []).slice().sort((a, b) => b.no - a.no);
